@@ -148,13 +148,13 @@ class DataLoader:
     """
     Создает датасет
     """
-    def __init__(self, image_path, labels_path, img_size=(64, 64)):
+    def __init__(self, image_path, labels_path, label_encoder_data, img_size=(64, 64)):
         self.image_path = image_path
         self.labels_path = labels_path
         self.img_size = img_size
         self.image_name_list = self._get_image_names()
         self.labels_df = self._read_labels()
-        self.label_encoder = LabelEncoder()
+        self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size=img_size[0])
 
     def _get_image_names(self):
         return os.listdir(self.image_path)

@@ -2,10 +2,11 @@ import tensorflow as tf
 
 
 class SSDLoss(tf.losses.Loss):
-    
-    def __init__(self, alpha, **kwargs):
+
+    def __init__(self, alpha=1, **kwargs):
         super().__init__(**kwargs)
-        self.num_boxes = 3
+        self.num_boxes = 1
+        self.alpha = alpha
         self._box_loss = tf.keras.losses.Huber() #SSDBoxLoss()
         self._cls_loss = tf.keras.losses.SparseCategoricalCrossentropy()
     
@@ -21,5 +22,5 @@ class SSDLoss(tf.losses.Loss):
         box_loss = self._box_loss(box_labels, box_predictions)
         cls_loss = tf.reduce_sum(cls_loss, axis=-1)
         box_loss = tf.reduce_sum(box_loss, axis=-1)
-        loss = (cls_loss + box_loss) / self.num_boxes
+        loss = (cls_loss + self.alpha * box_loss) / self.num_boxes
         return loss
