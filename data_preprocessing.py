@@ -10,6 +10,7 @@ class AncorBoxCreator:
     Генерирует анкербоксы
     """
     def __init__(self, fmap_dims, obj_scales, aspect_ratios, img_size=64):
+        self.img_size = img_size
         self.fmap_dims = fmap_dims             
         self.obj_scales = obj_scales 
         self.aspect_ratios = aspect_ratios
@@ -23,9 +24,9 @@ class AncorBoxCreator:
               cx = (j + 0.5) / self.fmap_dims[fmap]
               cy = (i + 0.5) / self.fmap_dims[fmap]  
               for ratio in self.aspect_ratios[fmap]:
-                prior_boxes.append([cx, cy, obj_scales[fmap] * np.sqrt(ratio), obj_scales[fmap] / np.sqrt(ratio)])
+                prior_boxes.append([cx, cy, self.obj_scales[fmap] * np.sqrt(ratio), self.obj_scales[fmap] / np.sqrt(ratio)])
         prior_boxes = tf.convert_to_tensor(prior_boxes) 
-        return prior_boxes * img_size
+        return prior_boxes * self.img_size
 
 
 class LabelEncoder:
@@ -110,7 +111,7 @@ class LabelEncoder:
         matched_gt_idx, positive_mask, ignore_mask = self._match_anchor_boxes(
             anchor_boxes, gt_boxes
         )
-        gt_boxes = convert_to_xywh(gt_boxes)
+        gt_boxes = utils.convert_to_xywh(gt_boxes)
         box_target = self._compute_box_target(anchor_boxes, gt_boxes)
         cls_gt = tf.ones((self.num_boxes, 1), dtype=tf.float32)
         cls_bg = tf.cast(tf.equal(cls_gt, 0.), dtype=tf.float32)
