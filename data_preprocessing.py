@@ -9,7 +9,7 @@ class AncorBoxCreator:
     """
     Генерирует анкербоксы
     """
-    def __init__(self, fmap_dims={'det_2': 1}, obj_scales={'det_2': 0.6}, aspect_ratios={'det_2': [1.]}, img_size=64):
+    def __init__(self, fmap_dims={'det_2': 1}, obj_scales={'det_2': 0.9}, aspect_ratios={'det_2': [1.]}, img_size=64):
         self.img_size = img_size
         self.fmap_dims = fmap_dims             
         self.obj_scales = obj_scales 
