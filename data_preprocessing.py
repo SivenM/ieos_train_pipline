@@ -92,10 +92,12 @@ class LabelEncoder:
 
     def _compute_box_target(self, anchor_boxes, matched_gt_boxes):
         """Трансформирует gt боксы в таргеты для обучения"""
+        xy = tf.math.divide_no_nan((matched_gt_boxes[:, :2] - anchor_boxes[:, :2]), anchor_boxes[:, 2:])
+        wh = tf.math.log(matched_gt_boxes[:, 2:] / anchor_boxes[:, 2:])
         box_target = tf.concat(
             [
-                tf.math.divide_no_nan((matched_gt_boxes[:, :2] - anchor_boxes[:, :2]), anchor_boxes[:, 2:]),
-                tf.math.log(tf.math.divide_no_nan(matched_gt_boxes[:, 2:], anchor_boxes[:, 2:])),
+                xy,
+                tf.where(tf.equal(wh, -np.inf), -100., wh),
             ],
             axis=-1,
         )
