@@ -20,7 +20,5 @@ class SSDLoss(tf.losses.Loss):
             labels=cls_labels, logits=cls_predictions
         )
         box_loss = self._box_loss(box_labels, box_predictions)
-        cls_loss = tf.reduce_sum(cls_loss, axis=-1)
-        box_loss = tf.reduce_sum(box_loss, axis=-1)
         loss = (cls_loss + self.alpha * box_loss) / self.num_boxes
         return loss
