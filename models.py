@@ -75,6 +75,7 @@ class Coach:
         for i, item in enumerate(val_dataset):
             y_pred = model(item[0], training=True)        
             loss = train_loss(item[1], y_pred)
+            print(loss)
             self.mean_loss(loss)
             gt_cls = item[1][:,0,4]
             gt_box = item[2]
