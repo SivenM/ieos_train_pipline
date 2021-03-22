@@ -78,7 +78,7 @@ class Coach:
             self.mean_loss(loss)
             gt_cls = item[1][:,0,4]
             gt_box = item[2]
-            boxes, cls_predictions = get_boxes_cls(y_pred)
+            boxes, cls_predictions = self.get_boxes_cls(y_pred)
             best_box, best_conf = self.get_best_box_conf(boxes, cls_predictions)
             self.update_metrics(best_box, best_conf, gt_box, gt_cls)
         epoch_loss, epoch_rmse, epoch_acc, epoch_auc = self.result_metrics()        
