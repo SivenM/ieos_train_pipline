@@ -17,12 +17,12 @@ class AncorBoxCreator:
 
     def create_boxes(self):
         prior_boxes = []    
-        for k, fmap in enumerate(fmaps):
-          for i in range(fmap_dims[fmap]):
-            for j in range(fmap_dims[fmap]):
-              cx = (j + 0.5) / fmap_dims[fmap]
-              cy = (i + 0.5) / fmap_dims[fmap]  
-              for ratio in aspect_ratios[fmap]:
+        for k, fmap in enumerate(self.fmaps):
+          for i in range(self.fmap_dims[fmap]):
+            for j in range(self.fmap_dims[fmap]):
+              cx = (j + 0.5) / self.fmap_dims[fmap]
+              cy = (i + 0.5) / self.fmap_dims[fmap]  
+              for ratio in self.aspect_ratios[fmap]:
                 prior_boxes.append([cx, cy, obj_scales[fmap] * np.sqrt(ratio), obj_scales[fmap] / np.sqrt(ratio)])
         prior_boxes = tf.convert_to_tensor(prior_boxes) 
         return prior_boxes * img_size
@@ -154,7 +154,7 @@ class DataLoader:
         self.img_size = img_size
         self.image_name_list = self._get_image_names()
         self.labels_df = self._read_labels()
-        self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size=img_size[0])
+        self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size[0])
 
     def _get_image_names(self):
         return os.listdir(self.image_path)
