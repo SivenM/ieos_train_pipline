@@ -1,6 +1,110 @@
 import tensorflow as tf
+import numpy as np
 from tensorflow import keras
+from data_preprocessing import AncorBoxCreator
+from callbacks import ModelCheckPoint, History
+import utils
 
+class Coach:
+
+    def __init__(self, img_size=64):
+        self.img_size = img_size
+        self.mean_loss = tf.keras.metrics.Mean()
+        self.rmse = tf.keras.metrics.RootMeanSquaredError()
+        self.acc = tf.keras.metrics.BinaryAccuracy()
+        self.auc = tf.keras.metrics.AUC()
+
+    def update_metrics(self, best_box, best_conf, gt_box, gt_cls):
+        self.rmse.update_state(gt_box, best_box)
+        self.acc.update_state(gt_cls, best_conf)
+        self.auc.update_state(gt_cls, best_conf)
+
+    def reset_metrics(self):
+        self.rmse.reset_states()
+        self.acc.reset_states()
+        self.auc.reset_states()
+        self.mean_loss.reset_states()
+    
+    def result_metrics(self):
+        epoch_loss = self.mean_loss.result().numpy()
+        epoch_rmse = self.rmse.result().numpy()
+        epoch_acc = self.acc.result().numpy()
+        epoch_auc = self.auc.result().numpy()
+        return epoch_loss, epoch_rmse, epoch_acc, epoch_auc
+
+    def get_boxes_cls(self, y_pred):
+        anchor_boxes = AncorBoxCreator(img_size=self.img_size).create_boxes()
+        box_predictions = y_pred[:, :, :4]
+        cls_predictions = tf.nn.softmax(y_pred[:, :, 4:])
+        boxes = utils.decode_box_predictions(anchor_boxes[None, ...], box_predictions)
+        return boxes, cls_predictions
+
+    def get_best_box_conf(self, boxes, cls_predictions):
+        best_box = []
+        best_conf = []
+        idxs = tf.argmax(cls_predictions[:,:,0], axis=1).numpy()
+        for i, idx in enumerate(idxs):
+            best_box.append(boxes[i, idx])
+            best_conf.append(cls_predictions[i, idx, 0])
+        return np.array(best_box), np.array(best_conf)
+
+    def train_epoch(self, model, train_loss, optimizer, train_dataset, ):
+        """
+        Эпоха обучения модели. Перед обучением проводится кроссвалидация.
+        Оценивается метриками RMSE, Accurasy, AUC
+        """
+
+        for i, item in enumerate(train_dataset):
+            with tf.GradientTape() as tape:
+                y_pred = model(item[0], training=True) 
+                loss = train_loss(item[1], y_pred)
+            gradients = tape.gradient(loss, model.trainable_variables)
+            optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+            self.mean_loss(loss)
+            gt_cls = item[1][:,0,4]
+            gt_box = item[2]
+            boxes, cls_predictions = self.get_boxes_cls(y_pred)
+            best_box, best_conf = self.get_best_box_conf(boxes, cls_predictions)
+            self.update_metrics(best_box, best_conf, gt_box, gt_cls)
+        epoch_loss, epoch_rmse, epoch_acc, epoch_auc = self.result_metrics()
+        
+        self.reset_metrics()       
+        return model, epoch_loss, [epoch_rmse, epoch_acc, epoch_auc]
+
+    def val_epoch(self, model, train_loss, val_dataset):
+        for i, item in enumerate(val_dataset):
+            y_pred = model(item[0], training=True)        
+            loss = train_loss(item[1], y_pred)
+            self.mean_loss(loss)
+            gt_cls = item[1][:,0,4]
+            gt_box = item[2]
+            boxes, cls_predictions = get_boxes_cls(y_pred)
+            best_box, best_conf = self.get_best_box_conf(boxes, cls_predictions)
+            self.update_metrics(best_box, best_conf, gt_box, gt_cls)
+        epoch_loss, epoch_rmse, epoch_acc, epoch_auc = self.result_metrics()        
+        self.reset_metrics()       
+        return model, epoch_loss, [epoch_rmse, epoch_acc, epoch_auc]
+
+    def parse_cfg(self, cfg):
+        return cfg['n_epochs'], cfg['model'], cfg['train_loss'], cfg['optimiser'], cfg['main_dir']
+
+    def fit(self, cfg, train_dataset, val_dataset):
+        n_epochs, model, train_loss, optimizer, main_dir = self.parse_cfg(cfg)
+        history = History(main_dir, n_epochs)
+        checkpoint = ModelCheckPoint(main_dir)
+        print('\nНачинаю обучение')
+        for epoch in range(n_epochs):
+            model, train_epoch_loss, train_metrics = self.train_epoch(model, train_loss, optimizer, train_dataset)
+            model, val_epoch_loss, val_metrics = self.val_epoch(model, train_loss, val_dataset)
+            print(f'{epoch + 1}. val_loss: {val_epoch_loss} | val_rmse {val_metrics[0]} | val_auc {val_metrics[-1]}')
+            history.write((train_epoch_loss, train_metrics), (val_epoch_loss, val_metrics))
+            checkpoint.check2(model, val_epoch_loss, epoch)
+        history.save_to_json()
+        checkpoint.save_data()
+        model_name = 'm64_ep_{}.h5'.format(n_epochs)
+        save_dir = os.path.join(main_dir, 'models')
+        model.save(os.path.join(save_dir, model_name))
+        print(f'Обучение на {n_epochs} эпохах завершено.\n')
 
 class SeparableConv(keras.layers.Layer):
 
