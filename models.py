@@ -293,7 +293,7 @@ def model_64(num_classes=2, training=None):
     num_classes = num_classes
     num_anchor_boxes = 1
     output_dim = num_anchor_boxes * (num_classes + 4)
-    input_layer = keras.Input(shape=(32, 32, 1), name='input')
+    input_layer = keras.Input(shape=(64, 64, 1), name='input')
     input_conv = keras.layers.Conv2D(32, (3,3), 
                                             padding='same', activation='relu', name='input_conv')(input_layer)
     x = keras.layers.Dropout(0.5)(input_conv)
