@@ -327,8 +327,8 @@ def model_64_2_outputs(num_classes=2, training=None):
     x = separable_conv(1024, (2, 2))(x)
     x = separable_conv(1024, (2, 2))(x)
     
-    box_prediction = keras.layers.Conv2D(4, kernel_size=(1, 1), padding='same', name='box')(x)
-    box_prediction = tf.keras.layers.Reshape((1, 4), input_shape=(1, 1, 4))(box_prediction)
-    conf_predicion = keras.layers.Conv2D(2, kernel_size=(1, 1), activation='softmax', padding='same', name='conf')(x)
-    conf_predicion = tf.keras.layers.Reshape((1, 2), input_shape=(1, 1, 2))(conf_predicion)
+    box_prediction = keras.layers.Conv2D(4, kernel_size=(1, 1), padding='same')(x)
+    box_prediction = tf.keras.layers.Reshape((1, 4), input_shape=(1, 1, 4), name='box')(box_prediction)
+    conf_predicion = keras.layers.Conv2D(2, kernel_size=(1, 1), activation='softmax', padding='same')(x)
+    conf_predicion = tf.keras.layers.Reshape((1, 2), input_shape=(1, 1, 2), name='conf')(conf_predicion)
     return keras.Model(inputs=input_layer, outputs = [box_prediction, conf_predicion])
