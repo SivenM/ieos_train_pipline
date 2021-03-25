@@ -271,9 +271,9 @@ class DatasetCreator:
                     np.concatenate([val_human[1], val_bg[1]], axis=0),
                     np.concatenate([val_human[2], val_bg[2]], axis=0),
                     )
-                train_dataset = tf.data.Dataset.from_tensor_slices(train_data).shuffle(buffer_size=5000, seed=42).batch(32).prefetch(1)
-                val_dataset = tf.data.Dataset.from_tensor_slices(val_data).shuffle(buffer_size=50, seed=42).batch(16).prefetch(1)
-                return train_dataset, val_dataset
+                #train_dataset = tf.data.Dataset.from_tensor_slices(train_data).shuffle(buffer_size=5000, seed=42).batch(32).prefetch(1)
+                #val_dataset = tf.data.Dataset.from_tensor_slices(val_data).shuffle(buffer_size=50, seed=42).batch(16).prefetch(1)
+                return train_data, val_data
             else:
                 return (
                     np.concatenate([self.human_data[0], self.bg_data[0]], axis=0),
