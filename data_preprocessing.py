@@ -151,13 +151,17 @@ class DataLoader:
     """
     Создает датасет
     """
-    def __init__(self, image_path, labels_path, label_encoder_data, img_size=(64, 64)):
+    def __init__(self, image_path, labels_path, label_encoder_data, img_size=(64, 64), label_encoder=True):
         self.image_path = image_path
         self.labels_path = labels_path
         self.img_size = img_size
         self.image_name_list = self._get_image_names()
         self.labels_df = self._read_labels()
-        self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size[0])
+        if label_encoder:
+            self.ln = True
+            self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size[0])
+        else:
+            self.ln = False
 
     def _get_image_names(self):
         return os.listdir(self.image_path)
@@ -188,15 +192,23 @@ class DataLoader:
     def create_human_data(self):
         X, Y = self._encode() 
         X_train = X / 255      
-        cls = tf.ones((Y.shape[0], 1), dtype=tf.float32)
-        Y_train = self.label_encoder.encode_batch(Y, cls)
-        return X_train, Y_train, Y
+        human_cls = tf.ones((Y.shape[0], 1), dtype=tf.float32)
+        if self.ln:
+            Y_train = self.label_encoder.encode_batch(Y, human_cls)
+            return X_train, Y_train, Y
+        else:
+            return X_train, Y, human_cls
 
     def create_bg_data(self):
         X, Y = self._encode() 
         X_train = X / 255
-        Y_train = self.label_encoder.encode_bg(Y)
-        return X_train, Y_train, Y
+        if self.ln:
+            Y_train = self.label_encoder.encode_bg(Y)
+            return X_train, Y_train, Y
+        else:
+            bg_cls = tf.ones((Y.shape[0], 1), dtype=tf.float32)
+            return X_train, Y, bg_cls
+
 
 class DatasetCreator:
     """

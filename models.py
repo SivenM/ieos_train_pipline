@@ -309,3 +309,26 @@ def model_64(num_classes=2, training=None):
     output = tf.keras.layers.Reshape((1, 6), input_shape=(1, 1, 6))(x)
     return keras.Model(inputs=input_layer, outputs = output)
     
+
+def model_64_2_outputs(num_classes=2, training=None):
+    num_classes = num_classes
+    num_anchor_boxes = 1
+    output_dim = num_anchor_boxes * (num_classes + 4)
+    input_layer = keras.Input(shape=(64, 64, 1), name='input')
+    input_conv = keras.layers.Conv2D(32, (3,3), 
+                                            padding='same', activation='relu', name='input_conv')(input_layer)
+    x = keras.layers.Dropout(0.5)(input_conv)
+    x = separable_conv(64)(x)
+    x = keras.layers.Dropout(0.5)(input_conv)
+    x = separable_conv(128, (2, 2))(x)
+    x = separable_conv(256, (2, 2))(x)
+    x = separable_conv(256, (2, 2))(x)
+    x = separable_conv(512, (2, 2))(x)
+    x = separable_conv(1024, (2, 2))(x)
+    x = separable_conv(1024, (2, 2))(x)
+    
+    box_prediction = keras.layers.Conv2D(4, kernel_size=(1, 1), padding='same', name='box')(x)
+    box_prediction = tf.keras.layers.Reshape((1, 4), input_shape=(1, 1, 4))(box_prediction)
+    conf_predicion = keras.layers.Conv2D(2, kernel_size=(1, 1), activation='softmax', padding='same', name='conf')(x)
+    conf_predicion = tf.keras.layers.Reshape((1, 2), input_shape=(1, 1, 2))(conf_predicion)
+    return keras.Model(inputs=input_layer, outputs = [box_prediction, conf_predicion])
