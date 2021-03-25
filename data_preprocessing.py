@@ -227,7 +227,8 @@ class DatasetCreator:
     def shuffle_data(self, dataset):
         seed = 42
         for data in dataset:
-            data = data.numpy()
+            if type(data) != np.ndarray:
+                data = data.numpy()
             np.random.seed(seed)
             np.random.shuffle(data)
         return dataset
