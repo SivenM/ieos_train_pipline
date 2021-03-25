@@ -206,7 +206,7 @@ class DataLoader:
             Y_train = self.label_encoder.encode_bg(Y)
             return X_train, Y_train, Y
         else:
-            bg_cls = tf.ones((Y.shape[0], 1), dtype=tf.float32)
+            bg_cls = tf.zeros((Y.shape[0], 1), dtype=tf.float32)
             return X_train, Y, bg_cls
 
 
