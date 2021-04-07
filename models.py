@@ -269,6 +269,24 @@ def separable_conv(pointwise_conv_filters, strides=(1, 1)):
     ])
 
 
+def separable_conv(x, pointwise_conv_filters, strides=(1, 1), name=''):
+    x = keras.layers.DepthwiseConv2D((3, 3),
+                             padding='same',
+                             depth_multiplier=1,
+                             strides=strides,
+                             use_bias=False)(x)
+    x = keras.layers.BatchNormalization()(x)
+    x = keras.layers.ReLU(6.)(x)  
+    x = keras.layers.Conv2D(pointwise_conv_filters, (1, 1),
+                    padding='same',
+                    use_bias=False,
+                    strides=(1, 1),
+                    )(x)
+    x = keras.layers.BatchNormalization()(x)
+    y = keras.layers.ReLU(6., name=name)(x)
+    return y 
+
+
 def model_32(num_classes=2, training=None):
     num_classes = num_classes
     num_anchor_boxes = 1
@@ -421,5 +439,28 @@ def model_32_2_outputs2(num_classes=2):
     box_prediction = keras.layers.Conv2D(4, kernel_size=(1, 1), padding='same')(x)
     box_prediction = tf.keras.layers.Reshape((4,), input_shape=(1, 1, 4), name='box')(box_prediction)
     conf_predicion = keras.layers.Conv2D(num_classes, kernel_size=(1, 1), activation='softmax', padding='same')(x)
+    conf_predicion = tf.keras.layers.Reshape((2,), input_shape=(1, 1, 2), name='conf')(conf_predicion)
+    return keras.Model(inputs=input_layer, outputs = [box_prediction, conf_predicion])
+
+
+def model_64_2_outputs5(num_classes=2):
+    num_anchor_boxes = 1
+    output_dim = num_anchor_boxes * (num_classes + 4)
+    input_layer = keras.Input(shape=(64, 64, 1), name='input')
+    input_conv = keras.layers.Conv2D(32, (3,3), 
+                                            padding='same', activation='relu', name='input_conv')(input_layer)
+    x = keras.layers.Dropout(0.5)(input_conv)
+    x = separable_conv(x, 8, (1, 1), 'sep_8')
+    x = keras.layers.Dropout(0.5)(x)
+    x = separable_conv(x, 16, (2, 2), 'sep_16')
+    x = separable_conv(x, 32, (2, 2), 'sep_32')
+    x = separable_conv(x, 64, (2, 2), 'sep_64_1')
+    x = separable_conv(x, 64, (2, 2), 'sep_64_2')
+    x = separable_conv(x, 128, (2, 2), 'sep_128')
+    x = separable_conv(x, 256, (2, 2), 'sep_256')
+    
+    box_prediction = keras.layers.Conv2D(4, kernel_size=(1, 1), padding='same')(x)
+    box_prediction = tf.keras.layers.Reshape((4,), input_shape=(1, 1, 4), name='box')(box_prediction)
+    conf_predicion = keras.layers.Conv2D(2, kernel_size=(1, 1), activation='softmax', padding='same')(x)
     conf_predicion = tf.keras.layers.Reshape((2,), input_shape=(1, 1, 2), name='conf')(conf_predicion)
     return keras.Model(inputs=input_layer, outputs = [box_prediction, conf_predicion])
