@@ -210,6 +210,48 @@ class DataLoader:
             return X_train, Y, bg_cls
 
 
+
+class HumanDataset(tf.keras.utils.Sequence):
+
+    def __init__(self, image_dir, labels_path, batch_size, img_size=(64, 64),):
+        self.img_dir = image_dir
+        self.labels_df = self._read_labels(labels_path)
+        self.batch_size = batch_size
+        self.img_size = img_size
+        self.imgs_data = os.listdir(self.img_dir)
+        np.random.shuffle(self.imgs_data)
+        self.names_df = self.labels_df['filename']
+
+    def _read_labels(self, labels_path):
+        return pd.read_csv(labels_path)
+
+    def __len__(self):
+        return len(self.imgs_data) // self.batch_size
+
+    def __getitem__(self, idx):
+        i = idx * self.batch_size
+        batch_imgs_data = self.imgs_data[i: i + self.batch_size]
+        x = np.zeros((self.batch_size,) + self.img_size + (1,), dtype="float32")
+        y_box = np.zeros((self.batch_size,) + (4,), dtype="float32")
+        y_cls = np.zeros((self.batch_size,) + (1,), dtype="float32")
+        for j, img_name in enumerate(batch_imgs_data):
+            path = os.path.join(self.img_dir, img_name)
+            img = tf.keras.preprocessing.image.load_img(path,
+                                                        color_mode = "grayscale",
+                                                        target_size=self.img_size)
+            img = tf.keras.preprocessing.image.img_to_array(img)
+            index_bbox = self.names_df.index[self.names_df == img_name]
+            bbox_coords = self.labels_df.iloc[index_bbox[0], 4:]
+            bbox_coords = np.array([bbox_coords['xmin'],              
+                           bbox_coords['ymin'],
+                           bbox_coords['xmax'],
+                           bbox_coords['ymax']], dtype="float32")
+            x[j] = img
+            y_box[j] = bbox_coords
+            if self.labels_df.iloc[index_bbox[0], 3] == 'person':
+                y_cls[j] = 1.
+        return x, (y_box, y_cls)
+
 class DatasetCreator:
     """
     Создает датасет для обучения в зависимости от соотношения
