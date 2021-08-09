@@ -3,6 +3,7 @@ import json
 import numpy as np
 import tensorflow as tf
 
+
 class ModelCheckPoint:
 
     def __init__(self, path, val='ep', k=None):
