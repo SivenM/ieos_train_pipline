@@ -213,7 +213,7 @@ class DataLoader:
 
 class HumanDataset(tf.keras.utils.Sequence):
 
-    def __init__(self, image_dir, labels_path, batch_size, img_size=(64, 64),):
+    def __init__(self, image_dir, labels_path, batch_size, img_size=(64, 64), normalise_bbox=True):
         self.img_dir = image_dir
         self.labels_df = self._read_labels(labels_path)
         self.batch_size = batch_size
@@ -221,6 +221,7 @@ class HumanDataset(tf.keras.utils.Sequence):
         self.imgs_data = os.listdir(self.img_dir)
         np.random.shuffle(self.imgs_data)
         self.names_df = self.labels_df['filename']
+        self.normalise_bbox = normalise_bbox
 
     def _read_labels(self, labels_path):
         return pd.read_csv(labels_path)
@@ -246,6 +247,11 @@ class HumanDataset(tf.keras.utils.Sequence):
                            bbox_coords['ymin'],
                            bbox_coords['xmax'],
                            bbox_coords['ymax']], dtype="float32")
+            if self.normalise_bbox:
+                bbox_coords[:, 0] /= self.img_size[1] 
+                bbox_coords[:, 1] /= self.img_size[0]
+                bbox_coords[:, 2] /= self.img_size[1]
+                bbox_coords[:, 3] /= self.img_size[0]
             x[j] = img
             y_box[j] = bbox_coords
             if self.labels_df.iloc[index_bbox[0], 3] == 'person':
