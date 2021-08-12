@@ -1,3 +1,4 @@
+import enum
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -151,29 +152,33 @@ class DataLoader:
     """
     Создает датасет
     """
-    def __init__(self, image_path, labels_path, label_encoder_data, img_size=(64, 64), label_encoder=True):
+    def __init__(self, image_path, labels_path, num_data=None, label_encoder_data=None, img_size=(64, 64), label_encoder=False):
         self.image_path = image_path
         self.labels_path = labels_path
         self.img_size = img_size
-        self.image_name_list = self._get_image_names()
+        self.image_name_list = self._get_image_names(num_data)
         self.labels_df = self._read_labels()
+
         if label_encoder:
             self.ln = True
             self.label_encoder = LabelEncoder(label_encoder_data['fmap_dims'], label_encoder_data['obj_scales'], label_encoder_data['aspect_ratios'], img_size[0])
         else:
             self.ln = False
 
-    def _get_image_names(self):
-        return os.listdir(self.image_path)
+    def _get_image_names(self, num_data):
+        if num_data != None:
+            return os.listdir(self.image_path)[:num_data]
+        else:
+            return os.listdir(self.image_path)
 
     def _read_labels(self):
         return pd.read_csv(self.labels_path)
 
     def _encode(self):
-        x = []
-        y = []
+        x = np.zeros((len(self.image_name_list),) + self.img_size + (1,), dtype="float32")
+        y = np.zeros((len(self.image_name_list),) + (4,), dtype="float32")
         names_df = self.labels_df['filename']
-        for image_name in self.image_name_list:
+        for i, image_name in enumerate(self.image_name_list):
             image_path = self.image_path + '/' + image_name
             image = tf.keras.preprocessing.image.load_img(image_path,
                                                           color_mode = "grayscale",
@@ -181,13 +186,13 @@ class DataLoader:
             image = tf.keras.preprocessing.image.img_to_array(image)
             index_bbox = names_df.index[names_df == image_name]
             bbox_coords = self.labels_df.iloc[index_bbox[0], 4:]
-            bbox_coords = [bbox_coords['xmin'],              
+            bbox_coords = np.array([bbox_coords['xmin'],              
                            bbox_coords['ymin'],
                            bbox_coords['xmax'],
-                           bbox_coords['ymax']] 
-            x.append(image)
-            y.append(bbox_coords)
-        return tf.convert_to_tensor(x), tf.convert_to_tensor(y, dtype=tf.float32)
+                           bbox_coords['ymax']] )
+            x[i] = image
+            y[i] = bbox_coords
+        return x, y
 
     def create_human_data(self):
         X, Y = self._encode() 
